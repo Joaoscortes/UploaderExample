@@ -24,7 +24,7 @@ import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
 import uploader.models.FileUpload;
 
-@Path("files")
+@Path("resources/files")
 @Stateless
 public class FileUploadResource {
 

@@ -10,13 +10,16 @@
                 <div *ngIf="username.errors?.minlength">
                     Name must be at least {{ username.errors?.minlength.requiredLength}} characters long.
                 </div>
+                <div *ngIf="username.errors?.unique">
+                    Username not available.
+                </div>
             </div>
         </div>
         <div class="form-group">
             <label for="inputOption">Option</label>
             <select formControlName="option" [compareWith]="compareOption" class="form-control" id="inputOption">
                 <option [ngValue]="null" disabled>Choose your profile</option>
-                <option *ngFor="let option of options" [ngValue]="option">
+                <option *ngFor="let option of options$ |async" [ngValue]="option">
                     {{ option.name }}
                 </option>
             </select>
@@ -32,6 +35,9 @@
                     (change)="uploadFile($event.target.files.item(0))">
                 <label class="input-group-text" for="inputFile">Upload</label>
             </div>
+            <div *ngIf="invalidFile" class="alert alert-danger">
+                Max size 5mb and must be a image
+            </div>
         </div>
         <div class="btn-toolbar justify-content-between" role="toolbar">
             <button type="button" class="btn btn-info" (click)="setFormValues()">Set Form Value</button>
@@ -39,14 +45,6 @@
             <button type="submit" class="btn" [ngClass]="userForm.valid ?'btn-primary' : 'btn-danger'" [disabled]="!userForm.valid">Submit</button>
         </div>
     </form>
-
-    <hr>
-    <div *ngFor="let item of uploadedImages">
-        <img [src]="item" alt="test" width="100px">
-    </div>
-    <div *ngFor="let item of uploadedFiles">
-        <a target="_blank" [href]="item">Open File</a>
-    </div>
 
     <p *ngIf="isValidFormSubmitted" class="success">
         Form submitted.

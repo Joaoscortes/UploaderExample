@@ -1,6 +1,11 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { Option } from './models/option';
+import { OptionService } from './services/option.service';
 import { UploaderService } from './services/uploader.service';
+import { UserService } from './services/user.service';
+import { UniqueUsername } from './validators/unique-username';
 
 @Component({
   selector: 'app-root',
@@ -10,22 +15,28 @@ import { UploaderService } from './services/uploader.service';
 export class AppComponent implements OnInit {
   @ViewChild('inputFile') inputFile: ElementRef;
 
-  uploadedImages = [];
-  uploadedFiles = [];
+  options$: Observable<Option>
 
   isValidFormSubmitted = false;
   userForm: FormGroup;
+  invalidFile: boolean = false;
 
   constructor(
     private formBuilder: FormBuilder,
-    private uploadService: UploaderService
-  ) { }
+    private uploadService: UploaderService,
+    private userService: UserService,
+    private uniqueUsername: UniqueUsername,
+    private optionsService: OptionService
+  ) {
+    this.options$ = this.optionsService.getAll();
+  }
 
   ngOnInit(): void {
     this.userForm = this.formBuilder.group({
       username: ['', [
         Validators.required,
-        Validators.minLength(4)]],
+        Validators.minLength(4)],
+        this.uniqueUsername.validate],
       option: [null, [Validators.required]],
       fileUrl: ['']
     });
@@ -50,12 +61,16 @@ export class AppComponent implements OnInit {
   onFormSubmit() {
     this.isValidFormSubmitted = false;
     if (this.userForm.valid) {
-      // TODO Save form api call
-      this.isValidFormSubmitted = true;
-    } else {
-      return;
+      this.userService.save(this.userForm.value).subscribe(
+        (user: any) => {
+          this.isValidFormSubmitted = true;
+          setTimeout(() => {
+            this.isValidFormSubmitted = false;
+          }, 2000);
+          this.resetForm(this.userForm);
+        }
+      )
     }
-    this.resetForm(this.userForm);
   }
 
   resetForm(form: FormGroup) {
@@ -74,6 +89,7 @@ export class AppComponent implements OnInit {
       fileUrl: ''
     };
     this.userForm.setValue(formValue);
+    this.userForm.get('username').markAsTouched()
   }
 
   compareOption(o1: any, o2: any): boolean {
@@ -81,40 +97,16 @@ export class AppComponent implements OnInit {
   }
 
   uploadFile(file: File) {
-    // TODO Validate file type and size
-    this.uploadService.upload(file).subscribe(
-      (fileUrl: string) => {
-        switch (file.type) {
-          case 'image/png':
-            this.updateFileUrl(fileUrl);
-            this.uploadedImages.push(fileUrl)
-            break;
-          default:
-            this.uploadedFiles.push(fileUrl)
-            break;
+    this.updateFileUrl('');
+    this.invalidFile = false;   
+    if (file.type === 'image/png' && file.size < 5000000) {
+      this.uploadService.upload(file).subscribe(
+        (fileUrl: string) => {
+          this.updateFileUrl(fileUrl);
         }
-      }
-    )
-  }
-
-  /**
-  Sample Data
-  */
-  options: any[] = [
-    {
-      id: 1,
-      name: "Option 1",
-      otherAtt: "Qwerty"
-    },
-    {
-      id: 2,
-      name: "Option 2",
-      otherAtt: "Qwerty"
-    },
-    {
-      id: 3,
-      name: "Option 3",
-      otherAtt: "Qwerty"
+      )
+    } else {
+      this.invalidFile = true;
     }
-  ]
+  }
 }
